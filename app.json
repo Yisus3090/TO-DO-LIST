@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "todo_list",
-    "slug": "todo_list",
-    "version": "1.0.0",
+    "name": "FocusList",
+    "slug": "FocusList",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -18,10 +18,16 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.yisus7.todo_list"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2192b134-d26d-4c76-8f64-93c5f7a952e3"
+      }
     }
   }
 }

@@ -1,34 +1,42 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Animated, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import Modal from 'react-native-modal';
 
 const Tareas = ({ text, category, color, onEdit, onDelete, isEditing, onToggleEditing }) => {
   const [editText, setEditText] = useState(text);
-  const [fadeAnim] = useState(new Animated.Value(1));
-  const [isModalVisible, setModalVisible] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(1)); // Animación de desaparición
 
   const handleEdit = () => {
     if (isEditing && editText.trim()) {
-      onEdit(editText);
+      onEdit(editText); // Editar la tarea
     }
-    onToggleEditing();
+    onToggleEditing(); // Alternar entre edición y visualización
   };
 
   const handleDelete = () => {
-    // Mostrar el modal de confirmación
-    setModalVisible(true);
+    // Alerta de confirmación antes de eliminar la tarea
+    Alert.alert(
+      'Eliminar tarea', // Título
+      '¿Estás seguro de que deseas eliminar esta tarea?', // Mensaje
+      [
+        { text: 'Cancelar', style: 'cancel' }, // Botón de cancelar
+        { 
+          text: 'Eliminar', 
+          onPress: () => confirmDelete() // Solo eliminar si el usuario lo confirma
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const confirmDelete = () => {
-    // Ejecutar la animación de eliminación y luego llamar a onDelete
+    // Animación de eliminación antes de eliminar la tarea
     Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 300,
+      toValue: 0, // Reducir la opacidad a 0
+      duration: 300, // Duración de la animación
       useNativeDriver: true,
     }).start(() => {
-      onDelete();
-      setModalVisible(false); // Cerrar el modal después de eliminar
+      onDelete(); // Llamar a la función onDelete una vez que se complete la animación
     });
   };
 
@@ -57,21 +65,6 @@ const Tareas = ({ text, category, color, onEdit, onDelete, isEditing, onToggleEd
           <Icon name="trash-outline" size={20} color="#333" />
         </TouchableOpacity>
       </View>
-
-      {/* Modal de confirmación */}
-      <Modal isVisible={isModalVisible}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalText}>¿Estás seguro de que deseas eliminar esta tarea?</Text>
-          <View style={styles.modalButtons}>
-            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalButton}>
-              <Text style={styles.modalButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={confirmDelete} style={styles.modalButton}>
-              <Text style={styles.modalButtonText}>Eliminar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </Animated.View>
   );
 };
@@ -113,33 +106,6 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     marginLeft: 15,
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalText: {
-    marginBottom: 15,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  modalButton: {
-    padding: 10,
-    borderRadius: 5,
-    backgroundColor: '#333',
-    marginHorizontal: 5,
-  },
-  modalButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
   },
 });
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, ScrollView, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, ScrollView, KeyboardAvoidingView, Keyboard, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Font from 'expo-font';
@@ -11,10 +12,7 @@ const categories = [
 ];
 
 export default function App() {
-  const [taskItems, setTaskItems] = useState([
-    { text: 'Tarea 1', category: 'Personal', color: '#FFDDC1', completed: false },
-    { text: 'Tarea 2', category: 'Trabajo', color: '#D1FAE5', completed: false }
-  ]);
+  const [taskItems, setTaskItems] = useState([]);
   const [newTask, setNewTask] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -24,7 +22,6 @@ export default function App() {
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
-  // Carga las fuentes
   useEffect(() => {
     const loadFonts = async () => {
       await Font.loadAsync({
@@ -37,7 +34,16 @@ export default function App() {
     loadFonts();
   }, []);
 
-  // Escucha los eventos del teclado
+  useEffect(() => {
+    const loadTasks = async () => {
+      const savedTasks = await AsyncStorage.getItem('tasks');
+      if (savedTasks) {
+        setTaskItems(JSON.parse(savedTasks));
+      }
+    };
+    loadTasks();
+  }, []);
+
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
       setKeyboardVisible(true);
@@ -52,32 +58,45 @@ export default function App() {
     };
   }, []);
 
-  const handleAddTask = () => {
+  const handleAddTask = async () => {
     if (newTask) {
-      if (isEditing) {
-        handleEditTask(editIndex);
-      } else {
-        setTaskItems([...taskItems, { text: newTask, category: selectedCategory.name, color: selectedCategory.color, completed: false }]);
-      }
-      setNewTask('');
+      const newTaskItem = { text: newTask, category: selectedCategory.name, color: selectedCategory.color, completed: false };
+      const updatedTasks = [...taskItems, newTaskItem];
+      setTaskItems(updatedTasks);
+      await AsyncStorage.setItem('tasks', JSON.stringify(updatedTasks));
+      setNewTask(''); // Solo al agregar una nueva tarea
+      Keyboard.dismiss(); // Cierra el teclado
       setModalVisible(false);
     }
   };
 
-  const markTaskCompleted = (index) => {
+  const markTaskCompleted = async (index) => {
     const tasksCopy = [...taskItems];
     tasksCopy[index].completed = !tasksCopy[index].completed;
     setTaskItems(tasksCopy);
+    await AsyncStorage.setItem('tasks', JSON.stringify(tasksCopy));
+    
+    // Alerta de tarea completada
+    if (tasksCopy[index].completed) {
+      Alert.alert("¡Felicidades!", "Has completado la tarea.");
+    }
   };
 
-  const handleEditTask = (index) => {
+  const handleEditTask = async (index) => {
     const tasksCopy = [...taskItems];
     tasksCopy[index].text = newTask;
     tasksCopy[index].category = selectedCategory.name;
     tasksCopy[index].color = selectedCategory.color;
     setTaskItems(tasksCopy);
+    await AsyncStorage.setItem('tasks', JSON.stringify(tasksCopy));
+  
+    // Cierra el teclado y el modal después de guardar
+    Keyboard.dismiss();
+    setModalVisible(false);
     setIsEditing(false);
     setEditIndex(null);
+    // No se restablece newTask aquí para evitar que se muestre el modal de agregar
+    setNewTask('');
   };
 
   const openEditModal = (index) => {
@@ -88,9 +107,25 @@ export default function App() {
     setModalVisible(true);
   };
 
-  const handleDeleteTask = (index) => {
-    const tasksCopy = taskItems.filter((_, i) => i !== index);
-    setTaskItems(tasksCopy);
+  const handleDeleteTask = async (index) => {
+    Alert.alert(
+      "Eliminar Tarea",
+      "¿Estás seguro de que deseas eliminar esta tarea?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Eliminar",
+          onPress: async () => {
+            const tasksCopy = taskItems.filter((_, i) => i !== index);
+            setTaskItems(tasksCopy);
+            await AsyncStorage.setItem('tasks', JSON.stringify(tasksCopy));
+          }
+        }
+      ]
+    );
   };
 
   const filteredTasks = () => {
@@ -212,8 +247,11 @@ export default function App() {
               ))}
             </ScrollView>
 
-            <TouchableOpacity onPress={handleAddTask} style={styles.button}>
-              <Text style={styles.buttonText}>{isEditing ? 'Guardar Cambios' : 'Agregar Tarea'}</Text>
+            <TouchableOpacity
+              onPress={isEditing ? () => handleEditTask(editIndex) : handleAddTask}
+              style={styles.saveButton}
+            >
+              <Text style={styles.saveButtonText}>{isEditing ? 'Guardar Cambios' : 'Agregar Tarea'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -221,8 +259,6 @@ export default function App() {
     </View>
   );
 }
-
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -418,5 +454,19 @@ keyboardOverlay: {
   right: 0,
   height: 200,
   zIndex:-1,
+},
+saveButton: {
+  backgroundColor: '#333',
+  borderRadius: 11,
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+        
+
+},
+saveButtonText: {
+  fontSize: 19,
+  color: '#fff',
+  fontWeight: '500',
+  fontFamily: 'Poppins-Bold',
 },
 });
